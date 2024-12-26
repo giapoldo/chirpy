@@ -5,11 +5,14 @@ import (
 )
 
 const (
-	readinessPath = "GET /api/healthz"
-	metricsPath   = "GET /admin/metrics"
-	resetPath     = "POST /admin/reset"
-	validatePath  = "POST /api/validate_chirp"
-	usersPath     = "POST /api/users"
+	readinessPath         = "GET /api/healthz"
+	metricsPath           = "GET /admin/metrics"
+	resetPath             = "POST /admin/reset"
+	addchirpsPath         = "POST /api/chirps"
+	getchirpsPath         = "GET /api/chirps"
+	getSingletonChirpPath = "GET /api/chirps/{chirpID}"
+	usersPath             = "POST /api/users"
+	loginPath             = "POST /api/login"
 )
 
 type endpoint struct {
@@ -39,14 +42,29 @@ func registerEndpoints(mux *http.ServeMux, apiCfg *apiConfig) {
 			Handler: apiCfg.handlerReset,
 		},
 		endpoint{
-			Name:    "validate_chirp",
-			Path:    validatePath,
-			Handler: handlerValidateChirp,
+			Name:    "addChirps",
+			Path:    addchirpsPath,
+			Handler: apiCfg.handlerAddChirps,
 		},
 		endpoint{
-			Name:    "create_user",
+			Name:    "getChirps",
+			Path:    getchirpsPath,
+			Handler: apiCfg.handlerGetChirps,
+		},
+		endpoint{
+			Name:    "getSingletonChirp",
+			Path:    getSingletonChirpPath,
+			Handler: apiCfg.handlerGetSingletonChirp,
+		},
+		endpoint{
+			Name:    "createUser",
 			Path:    usersPath,
 			Handler: apiCfg.handlerCreateUser,
+		},
+		endpoint{
+			Name:    "loginUser",
+			Path:    loginPath,
+			Handler: apiCfg.handlerLoginUser,
 		},
 	}
 
