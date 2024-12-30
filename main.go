@@ -14,20 +14,16 @@ import (
 
 const (
 	fileServerPath = "/app/"
-	// readinessPath  = "GET /api/healthz"
-	// metricsPath    = "GET /admin/metrics"
-	// resetPath      = "POST /admin/reset"
-	// validatePath   = "POST /api/validate_chirp"
-	// usersPath      = "POST /api/users"
-
-	rootPath = "."
-	port     = "8080"
+	rootPath       = "."
+	port           = "8080"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	jwtSecret      string
+	polkaKey       string
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -44,6 +40,8 @@ func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
 	cfgPlatform := os.Getenv("PLATFORM")
+	jwtSecret := os.Getenv("SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -56,6 +54,8 @@ func main() {
 	apiCfg := apiConfig{}
 	apiCfg.db = dbQueries
 	apiCfg.platform = cfgPlatform
+	apiCfg.jwtSecret = jwtSecret
+	apiCfg.polkaKey = polkaKey
 
 	serveMux := http.NewServeMux()
 	fileServer := http.FileServer(http.Dir(rootPath))
@@ -63,11 +63,6 @@ func main() {
 	serveMux.Handle(fileServerPath, apiCfg.middlewareMetricsInc(fS))
 
 	registerEndpoints(serveMux, &apiCfg)
-	// serveMux.HandleFunc(readinessPath, handlerReadiness)
-	// serveMux.HandleFunc(metricsPath, apiCfg.handlerHits)
-	// serveMux.HandleFunc(resetPath, apiCfg.handlerReset)
-	// serveMux.HandleFunc(validatePath, handlerValidateChirp)
-	// serveMux.HandleFunc(usersPath, apiCfg.handlerCreateUser)
 
 	server := http.Server{}
 	server.Addr = ":" + port

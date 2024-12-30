@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/giapoldo/chirpy/internal/auth"
 	"github.com/giapoldo/chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -27,16 +28,32 @@ func filterBadWords(chirp string) (cleanChirp string) {
 	return
 }
 
+// POST /api/chirps
 func (cfg *apiConfig) handlerAddChirps(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
+
 	err := decoder.Decode(&params)
 	if err != nil {
 		// an error will be thrown if the JSON is invalid or has the wrong types
 		// any missing fields will simply have their values in the struct set to their zero value
 		log.Printf("Error decoding parameters: %s\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Println("No token in request 1", err)
+		respondWithError(w, http.StatusUnauthorized, "No token in request 1")
+		return
+	}
+
+	JWTuserID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		log.Println("No token in request 2", err)
+		respondWithError(w, http.StatusUnauthorized, "No token in request 2")
 		return
 	}
 
@@ -47,14 +64,10 @@ func (cfg *apiConfig) handlerAddChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cleanedBody := filterBadWords(params.Body)
-	// retVals := returnVals{
-	// 	Error:       "",
-	// 	CleanedBody: filterBadWords(params.Body),
-	// }
 
 	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleanedBody,
-		UserID: uuid.MustParse(params.UserID),
+		UserID: JWTuserID,
 	})
 	if err != nil {
 		log.Printf("Error creating chirp: %s\n", err)
@@ -116,5 +129,40 @@ func (cfg *apiConfig) handlerGetSingletonChirp(w http.ResponseWriter, r *http.Re
 	}
 
 	respondWithJSON(w, http.StatusOK, retrieved_chirp)
+	return
+}
+
+func (cfg *apiConfig) handlerDeleteSingletonChirp(w http.ResponseWriter, r *http.Request) {
+
+	chirpID := uuid.MustParse(r.PathValue("chirpID"))
+
+	accessToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Println("UpdateUser, accestoken:", err)
+		respondWithError(w, http.StatusUnauthorized, "No token in request")
+		return
+	}
+
+	jwt_user, err := auth.ValidateJWT(accessToken, cfg.jwtSecret)
+	if err != nil {
+		log.Println("UpdateUser, validatejwt:", err)
+		respondWithError(w, http.StatusUnauthorized, "Malformed token")
+		return
+	}
+
+	chirp, err := cfg.db.GetSingleChirp(r.Context(), chirpID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Couldn't find Chirp")
+		return
+	}
+
+	if jwt_user != chirp.UserID {
+		respondWithError(w, http.StatusForbidden, "User mismatch")
+		return
+	}
+
+	cfg.db.DeleteSingletonChirps(r.Context(), chirp.ID)
+
+	respondWithJSON(w, http.StatusNoContent, "")
 	return
 }

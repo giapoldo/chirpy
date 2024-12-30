@@ -15,3 +15,11 @@ SELECT * FROM users WHERE email = $1;
 
 -- name: DeleteAllUsers :exec
 DELETE FROM users;
+
+-- name: UpdateUser :one
+UPDATE users SET email = $2 , hashed_password = $3 , updated_at = $4 WHERE id = $1
+RETURNING *;
+
+-- name: UpgradeUserToRed :one
+UPDATE users SET is_chirpy_red = TRUE , updated_at = NOW() WHERE id = $1
+RETURNING *;

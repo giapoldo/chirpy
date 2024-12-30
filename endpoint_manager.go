@@ -12,7 +12,12 @@ const (
 	getchirpsPath         = "GET /api/chirps"
 	getSingletonChirpPath = "GET /api/chirps/{chirpID}"
 	usersPath             = "POST /api/users"
+	updateUsersPath       = "PUT /api/users"
 	loginPath             = "POST /api/login"
+	refreshPath           = "POST /api/refresh"
+	revokePath            = "POST /api/revoke"
+	deletePath            = "DELETE /api/chirps/{chirpID}"
+	redWebhookPath        = "POST /api/polka/webhooks"
 )
 
 type endpoint struct {
@@ -65,6 +70,31 @@ func registerEndpoints(mux *http.ServeMux, apiCfg *apiConfig) {
 			Name:    "loginUser",
 			Path:    loginPath,
 			Handler: apiCfg.handlerLoginUser,
+		},
+		endpoint{
+			Name:    "refreshToken",
+			Path:    refreshPath,
+			Handler: apiCfg.handlerRefreshToken,
+		},
+		endpoint{
+			Name:    "revokeToken",
+			Path:    revokePath,
+			Handler: apiCfg.handlerRevokeToken,
+		},
+		endpoint{
+			Name:    "updateUser",
+			Path:    updateUsersPath,
+			Handler: apiCfg.handlerUpdateUser,
+		},
+		endpoint{
+			Name:    "deleteChirp",
+			Path:    deletePath,
+			Handler: apiCfg.handlerDeleteSingletonChirp,
+		},
+		endpoint{
+			Name:    "updateToRed",
+			Path:    redWebhookPath,
+			Handler: apiCfg.handlerUpgradeToRedWebhook,
 		},
 	}
 

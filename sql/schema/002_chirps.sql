@@ -1,5 +1,4 @@
 -- +goose Up
-
 CREATE TABLE chirps (
     id uuid PRIMARY KEY,
     created_at TIMESTAMP NOT NULL,
@@ -10,4 +9,4 @@ CREATE TABLE chirps (
 );
 
 -- +goose Down
-DROP TABLE chirps;
+DROP TABLE IF EXISTS chirps;
