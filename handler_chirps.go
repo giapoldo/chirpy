@@ -89,11 +89,49 @@ func (cfg *apiConfig) handlerAddChirps(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 
-	db_chirps, err := cfg.db.GetChirps(r.Context())
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve Chirps")
-
+	sort := r.URL.Query().Get("sort")
+	if sort == "" {
+		sort = "asc"
 	}
+
+	log.Println(sort)
+
+	var user_ID uuid.UUID
+	author_id := r.URL.Query().Get("author_id")
+	user_ID, err := uuid.Parse(author_id)
+	if err != nil {
+		user_ID = uuid.UUID{}
+	}
+
+	log.Println()
+	log.Println(user_ID)
+	log.Println()
+	var db_chirps []database.Chirp
+
+	if (user_ID == uuid.UUID{}) {
+		if sort == "asc" {
+			db_chirps, err = cfg.db.GetChirps(r.Context())
+		} else {
+			db_chirps, err = cfg.db.GetChirpsDESC(r.Context())
+		}
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve Chirps")
+			return
+		}
+	} else {
+		if sort == "asc" {
+			db_chirps, err = cfg.db.GetChirpsFromUser(r.Context(), user_ID)
+		} else {
+			db_chirps, err = cfg.db.GetChirpsFromUserDESC(r.Context(), user_ID)
+		}
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve Chirps")
+			return
+		}
+	}
+	log.Println()
+	log.Println(db_chirps)
+	log.Println()
 
 	retrieved_chirps := []chirpData{}
 	for _, chirp := range db_chirps {
